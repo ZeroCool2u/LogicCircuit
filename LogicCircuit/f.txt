@@ -1,0 +1,6 @@
+gate and a 10.0
+gate or b 3.5
+gate not c 4.8
+wire a b in1 1.0
+wire a c in 1.5
+wire c a in1 1.0
