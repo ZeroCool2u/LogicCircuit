@@ -7,11 +7,11 @@
  * @version MP2
  */
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.LinkedList;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Scanner;
 
 class Errors {
@@ -20,14 +20,14 @@ class Errors {
     static void fatal( String message ) {
         /** Report a fatal error with the given message
          */
-        System.err.println( "Error: " + message );
+        System.err.println(message);
         System.exit( 1 );
     }
 
     static void warn( String message ) {
         /** Report a nonfatal error with the given message
          */
-        System.err.println( "Error: " + message );
+        System.err.println(message);
     }
 }
 
@@ -54,13 +54,13 @@ class Wire {
     /** Wires link gates.
      *  @see Gate
      */
-    float  delay;	// delay of this wire
-    Gate   driven;	// what gate does this wire drive
-    int input;	// what input of driven does this wire drive Note: Originally this var type was String. 
+    float delay;    // delay of this wire
+    Gate driven;    // what gate does this wire drive
+    int input;    // what input of driven does this wire drive
 
-    Gate   driver;	// what gate drives this wire
+    Gate driver;    // what gate drives this wire
 
-
+    // initializer -- note:  No outside code uses the default initializer!
     public static Wire scan( Scanner sc ) {
         /** Initialize a wire by scanning its description from sc.
          *  Returns null if the description contains errors.
@@ -72,21 +72,11 @@ class Wire {
         w.driver = LogicCircuit.findGate( srcName );
         String dstName = sc.next();
         w.driven = LogicCircuit.findGate( dstName );
-        //w.input = sc.next();
-        String stringInput = sc.next();
-
-        for(int i=0; i < w.driven.inputTrans.length; i++){
-            if (w.driven.inputTrans[i].equals(stringInput)){
-                w.input = i;
-            }
-            else if( w.driven.inputTrans[i] == null){
-                i++;
-            }
-        }
+        String inputName = sc.next();
 
         if (w.driver == null) {
             Errors.warn(
-                    "wire '" + srcName + "' '" + dstName
+                    "Wire '" + srcName + "' '" + dstName
                             + "' -- the first name is undefined"
             );
             returnValue = null;
@@ -94,22 +84,25 @@ class Wire {
 
         if (w.driven == null) {
             Errors.warn(
-                    "wire '" + srcName + "' '" + dstName
+                    "Wire '" + srcName + "' '" + dstName
                             + "' -- the second name is undefined"
             );
             returnValue = null;
-        } else if (w.driven.inputNumber(stringInput) < 0){
-            Errors.warn(
-                    "wire '" + srcName + "' '" + dstName + "' '"
-                            + w.input
-                            + "' -- the input name is not allowed"
-            );
-            returnValue = null;
+        } else {
+            w.input = w.driven.inputNumber(inputName);
+            if (w.input < 0) {
+                Errors.warn(
+                        "Wire '" + srcName + "' '" + dstName
+                                + "' '" + inputName
+                                + "' -- the input name is not allowed"
+                );
+                returnValue = null;
+            }
         }
 
         if (!sc.hasNextFloat()) {
             Errors.warn(
-                    "wire '" + srcName + "' '" + dstName + "'"
+                    "Wire '" + srcName + "' '" + dstName + "'"
                             + "-- delay not specified"
             );
             returnValue = null;
@@ -131,7 +124,7 @@ class Wire {
         return  "wire "
                 + driver.name + ' '
                 + driven.name + ' '
-                + input + ' '
+                + driven.inputName(input) + ' '
                 + delay
                 ;
     }
@@ -141,201 +134,157 @@ abstract class Gate {
     /** Gates are driven by and drive wires.
      *  @see Wire
      */
-    String name;	// name of this gate
+    String name;    // name of this gate; null signals invalid gate
 
     LinkedList <Wire> driven = new LinkedList <Wire> ();
     LinkedList <Wire> driver = new LinkedList <Wire> ();
+    // Bug: the above two lists are unused, but we think we'll need them.
 
-    final String[] inputTrans = {null, "in1", "in2"};
-    int[] usedInputs = {0,0}; //0 is False, the input has not been used and 1 is True, the input has been used.
+    List<String> inputList;  // the list of allowed input names
+    boolean[] inputUsed;      // for each input, is it in use?
 
-    String gateType;		// the name of the type of this gate
-    LinkedList <String> inputList;	// the list of allowed input names
-    // Bug: above is the wrong way to handle gate types (and, or, not ... ).
     float  delay;	// delay of this gate
 
-    // initializer -- note:  No outside code uses the default initializer!
-    public abstract Gate scan( Scanner sc, String kind, List <String> inputs );
+    // initializer -- note:  called only by implementing classes
+    public void scan(Scanner sc, List<String> inputs) {
+        /** Initialize a gate scanning its description from sc.
+         *  Returns name = null if the description contains errors.
+         */
+
+        name = sc.next();
+        String returnName = name;
+
+        inputList = inputs;
+        inputUsed = new boolean[inputList.size()];
+        for (int i = 0; i < inputUsed.length; i++) {
+            inputUsed[i] = false;
+        }
+
+        if (LogicCircuit.findGate(name) != null) {
+            Errors.warn("Gate '" + name + "' redefined");
+            returnName = null;
+        }
+
+        if (!sc.hasNextFloat()) {
+            Errors.warn(
+                    "Gate '" + name
+                            + "' -- delay not specified"
+            );
+            returnName = null;
+        } else {
+            delay = sc.nextFloat();
+        }
+
+        SyntaxCheck.lineEnd(
+                sc,
+                "Gate '" + name + "'"
+                // Bug: the above triggers wasteful computation
+        );
+
+        name = returnName;
+    }
+
+    public int inputNumber(String in) {
+        /** Given an input name, returns the corresponding number.
+         *  Also checks that the name has not been used before;
+         *  if it has been used or is an illegal name, returns -1.
+         */
+        int i = inputList.indexOf(in);
+        if (i >= 0) {
+            if (inputUsed[i]) {
+                i = -1; // input already in use
+            } else {
+                inputUsed[i] = true;
+            }
+        }
+        return i;
+    }
+
+    public String inputName(int in) {
+        /** Given an input number, returns the corresponding name.
+         *  and also check off the fact that it has been used.
+         */
+        return inputList.get(in);
+    }
+
+    public void checkInputs() {
+        /** Check to see that all inputs of this gate are connected.
+         */
+        for (int i = 0; i < inputUsed.length; i++) {
+            if (inputUsed[i] == false) {
+                Errors.warn(
+                        "Gate " + name + ' '
+                                + inputList.get(i)
+                                + " -- input not connected"
+                );
+            }
+        }
+    }
+
+    public abstract String toString();
+    /** Convert a gate back to its textual description
+     */
+}
+
+class AndGate extends Gate {
+    private static List<String> inputs = Arrays.asList("in1", "in2");
+
+    private AndGate() {
+    } // prevent outsiders from using the initializer
+
+    public static Gate scan(Scanner sc) {
+        AndGate g = new AndGate();
+        g.scan(sc, inputs);
+        if (g.name == null) g = null;
+        return g;
+    }
 
     public String toString() {
         /** Convert an intersection back to its textual description
          */
-        return "gate " + gateType + ' ' + name + ' ' + delay;
-    }
-
-    public String inputName(int i){
-        return inputTrans[i];
-    }
-
-    public int inputNumber(String s){
-        int indexOfInput = Arrays.asList(inputTrans).indexOf(s);
-
-        if (indexOfInput >= 0){
-            usedInputs[indexOfInput] = 1;
-            return indexOfInput;
-        }
-        else return -1;
-
-    }
-
-    public boolean checkInput( String in ) {
-        /** Check if in is a permitted input for this gate
-         *  and also check off the fact that it has been used.
-         *  Bug: this may not be the right way to do this.
-         */
-        return inputList.remove( in );
+        return "gate and " + name + ' ' + delay;
     }
 }
 
-class ANDGate extends Gate {
+class OrGate extends Gate {
+    private static List<String> inputs = Arrays.asList("in1", "in2");
 
-    private ANDGate() { }
+    private OrGate() {
+    } // prevent outsiders from using the initializer
 
-    public static ANDGate init(Scanner sc, String kind, List<String> inputs) {
-        ANDGate newANDGate = new ANDGate();
-        newANDGate = newANDGate.scan(sc, kind, inputs);
-        return newANDGate;
+    public static Gate scan(Scanner sc) {
+        OrGate g = new OrGate();
+        g.scan(sc, inputs);
+        if (g.name == null) g = null;
+        return g;
     }
 
-    @Override
-    public ANDGate scan( Scanner sc, String kind,
-                         List <String> inputs ) {
-        /** Initialize a gate scanning its description from sc.
-         *  Returns null if the description contains errors.
-         *  Bug: kind is the wrong way to pass the kind of gate.
-         *  Bug: inputs should be a function of kind.
+    public String toString() {
+        /** Convert an intersection back to its textual description
          */
-        ANDGate g = new ANDGate();
-        ANDGate returnValue = g;
-
-        g.gateType = kind;
-        g.inputList = new LinkedList <String> ( inputs );
-        // Bug: above is the wrong way to handle gate types
-
-        g.name = sc.next();
-        if (LogicCircuit.findGate( g.name ) != null) {
-            Errors.warn( "gate '" + g.name + "' redefined" );
-            returnValue = null;
-        }
-
-        if (!sc.hasNextFloat()) {
-            Errors.warn(
-                    "gate " + kind + " '" + g.name
-                            + "' -- delay not specified"
-            );
-            returnValue = null;
-        } else {
-            g.delay = sc.nextFloat();
-        }
-
-        SyntaxCheck.lineEnd(
-                sc,
-                "gate " + kind + " '" + g.name + "'"
-
-        );
-
-        return returnValue;
-    } }
-
-class ORGate extends Gate {
-
-    public static ORGate init(Scanner sc, String kind, List<String> inputs) {
-        ORGate newORGate = new ORGate();
-        newORGate = newORGate.scan(sc, kind, inputs);
-        return newORGate;
-    }
-
-    @Override
-    public ORGate scan( Scanner sc, String kind,
-                        List <String> inputs ) {
-        /** Initialize a gate scanning its description from sc.
-         *  Returns null if the description contains errors.
-         *  Bug: kind is the wrong way to pass the kind of gate.
-         *  Bug: inputs should be a function of kind.
-         */
-        ORGate g = new ORGate();
-        ORGate returnValue = g;
-
-        g.gateType = kind;
-        g.inputList = new LinkedList <String> ( inputs );
-        // Bug: above is the wrong way to handle gate types
-
-        g.name = sc.next();
-        if (LogicCircuit.findGate( g.name ) != null) {
-            Errors.warn( "gate '" + g.name + "' redefined" );
-            returnValue = null;
-        }
-
-        if (!sc.hasNextFloat()) {
-            Errors.warn(
-                    "gate " + kind + " '" + g.name
-                            + "' -- delay not specified"
-            );
-            returnValue = null;
-        } else {
-            g.delay = sc.nextFloat();
-        }
-
-        SyntaxCheck.lineEnd(
-                sc,
-                "gate " + kind + " '" + g.name + "'"
-
-        );
-
-        return returnValue;
+        return "gate or " + name + ' ' + delay;
     }
 }
 
-class NOTGate extends Gate {
+class NotGate extends Gate {
+    private static List<String> inputs = Arrays.asList("in");
 
-    public static NOTGate init(Scanner sc, String kind, List<String> inputs) {
-        NOTGate newNOTGate = new NOTGate();
-        newNOTGate = newNOTGate.scan(sc, kind, inputs);
-        return newNOTGate;
+    private NotGate() {
+    } // prevent outsiders from using the initializer
+
+    public static Gate scan(Scanner sc) {
+        NotGate g = new NotGate();
+        g.scan(sc, inputs);
+        if (g.name == null) g = null;
+        return g;
     }
 
-    @Override
-    public NOTGate scan( Scanner sc, String kind,
-                         List <String> inputs ) {
-        /** Initialize a gate scanning its description from sc.
-         *  Returns null if the description contains errors.
-         *  Bug: kind is the wrong way to pass the kind of gate.
-         *  Bug: inputs should be a function of kind.
+    public String toString() {
+        /** Convert an intersection back to its textual description
          */
-        NOTGate g = new NOTGate();
-        NOTGate returnValue = g;
-
-        g.gateType = kind;
-        g.inputList = new LinkedList <String> ( inputs );
-        // Bug: above is the wrong way to handle gate types
-
-        g.name = sc.next();
-        if (LogicCircuit.findGate( g.name ) != null) {
-            Errors.warn( "gate '" + g.name + "' redefined" );
-            returnValue = null;
-        }
-
-        if (!sc.hasNextFloat()) {
-            Errors.warn(
-                    "gate " + kind + " '" + g.name
-                            + "' -- delay not specified"
-            );
-            returnValue = null;
-        } else {
-            g.delay = sc.nextFloat();
-        }
-
-        SyntaxCheck.lineEnd(
-                sc,
-                "gate " + kind + " '" + g.name + "'"
-
-        );
-
-        return returnValue;
+        return "gate not " + name + ' ' + delay;
     }
 }
-
-
 
 public class LogicCircuit {
     /** Top level description of a logic circuit made of
@@ -379,11 +328,11 @@ public class LogicCircuit {
                 String kind = sc.next();
                 Gate g = null;
                 if ("and".equals( kind )) {
-                    g = ANDGate.init( sc, "and", in1in2 );
+                    g = AndGate.scan(sc);
                 } else if ("or".equals( kind )) {
-                    g = ORGate.init( sc, "or", in1in2 );
+                    g = OrGate.scan(sc);
                 } else if ("not".equals( kind )) {
-                    g = NOTGate.init( sc, "not", in );
+                    g = NotGate.scan(sc);
                 } else {
                     Errors.warn(
                             "gate '"
@@ -407,8 +356,16 @@ public class LogicCircuit {
         }
     }
 
-    private static void writeNetwork() {
-        /** Write out a textual description of the entire road network.
+    private static void checkCircuit() {
+        /** Check the completeness of the logic circuit description.
+         */
+        for (Gate g : gates) {
+            g.checkInputs();
+        }
+    }
+
+    private static void writeCircuit() {
+        /** Write out a textual description of the entire logic circuit.
          *  This routine is scaffolding used during development.
          */
         for (Gate g: gates) {
@@ -432,7 +389,8 @@ public class LogicCircuit {
         }
         try {
             readCircuit( new Scanner( new File( args[0] )));
-            writeNetwork();
+            checkCircuit();
+            writeCircuit();
         } catch (FileNotFoundException e) {
             Errors.fatal( "Can't open file '" + args[0] + "'" );
         }
