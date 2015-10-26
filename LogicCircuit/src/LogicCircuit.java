@@ -4,15 +4,12 @@
  * and then write it out in order to demonstrate that it was read correctly.
  * @author Theo Linnemann 00773130
  * Based on code provided by Douglas Jones
- * @version MP2
+ * @version MP3
  */
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 class Errors {
     /** Error reporting framework
@@ -283,6 +280,43 @@ class NotGate extends Gate {
         /** Convert an intersection back to its textual description
          */
         return "gate not " + name + ' ' + delay;
+    }
+}
+
+class Simulator {
+
+    static PriorityQueue<Event> eventSet
+            = new PriorityQueue<Event>(
+            (Event e1, Event e2) -> Float.compare(e1.time, e2.time)
+    );
+
+    static void schedule(float time, Action a) {
+        eventSet.add(new Event(time, a));
+    }
+
+    static void run() {
+        // run the simulation
+        while (!eventSet.isEmpty()) {
+            eventSet.remove().trigger();
+        }
+    }
+
+    public interface Action {
+        void trigger(float time);
+    }
+
+    private static class Event {
+        public float time; // the time of this event
+        public Action act; // what to do at that time
+
+        Event(float t, Action a) {
+            time = t;
+            act = a;
+        }
+
+        void trigger() {
+            act.trigger(time);
+        }
     }
 }
 
