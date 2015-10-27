@@ -115,6 +115,7 @@ class Wire {
         return returnValue;
     }
 
+
     public String toString() {
         /** Convert a wire back to its textual description
          */
@@ -124,6 +125,10 @@ class Wire {
                 + driven.inputName(input) + ' '
                 + delay
                 ;
+    }
+
+    public void changeOutput(float time, boolean value) {
+
     }
 }
 
@@ -218,6 +223,12 @@ abstract class Gate {
         }
     }
 
+    public abstract void changeOutput(float time, boolean value);
+
+    /**
+     * Changes a gates output when a scheduled event occurrs.
+     */
+
     public abstract String toString();
     /** Convert a gate back to its textual description
      */
@@ -241,6 +252,10 @@ class AndGate extends Gate {
          */
         return "gate and " + name + ' ' + delay;
     }
+
+    public void changeOutput(float time, boolean value) {
+
+    }
 }
 
 class OrGate extends Gate {
@@ -260,6 +275,10 @@ class OrGate extends Gate {
         /** Convert an intersection back to its textual description
          */
         return "gate or " + name + ' ' + delay;
+    }
+
+    public void changeOutput(float time, boolean value) {
+
     }
 }
 
@@ -281,42 +300,50 @@ class NotGate extends Gate {
          */
         return "gate not " + name + ' ' + delay;
     }
+
+    public void changeOutput(float time, boolean value) {
+
+    }
 }
 
 class Simulator {
 
-    static PriorityQueue<Event> eventSet
-            = new PriorityQueue<Event>(
+    static PriorityQueue<Event> eventSet = new PriorityQueue<Event>(
             (Event e1, Event e2) -> Float.compare(e1.time, e2.time)
     );
 
-    static void schedule(float time, Action a) {
-        eventSet.add(new Event(time, a));
+    static void scheduleWireEvent(float time, Wire wireTarget, boolean value) {
+        Event e = new Event();
+        e.time = time;
+        e.wireTarget = wireTarget;
+        e.value = value;
+        eventSet.add(e);
+    }
+
+    static void scheduleGateEvent(float time, Gate targetGate, boolean value) {
+        Event e = new Event();
+        e.time = time;
+        e.targetGate = targetGate;
+        e.value = value;
+        eventSet.add(e);
     }
 
     static void run() {
         // run the simulation
         while (!eventSet.isEmpty()) {
-            eventSet.remove().trigger();
+            Event e = eventSet.remove();
+            if (e.targetGate != null) {
+                e.targetGate.changeOutput(e.time, e.value);
+            } else e.wireTarget.changeOutput(e.time, e.value);
         }
-    }
-
-    public interface Action {
-        void trigger(float time);
     }
 
     private static class Event {
         public float time; // the time of this event
-        public Action act; // what to do at that time
+        public Gate targetGate; // what Gate object we're targeting
+        public Wire wireTarget; // what Wire object we're targeting
+        public boolean value; // our targets bool value
 
-        Event(float t, Action a) {
-            time = t;
-            act = a;
-        }
-
-        void trigger() {
-            act.trigger(time);
-        }
     }
 }
 
