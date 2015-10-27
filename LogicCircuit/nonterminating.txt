@@ -1,0 +1,2 @@
+gate not X 0.1
+wire X X in 0.9
