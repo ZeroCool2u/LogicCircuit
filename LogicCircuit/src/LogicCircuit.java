@@ -54,6 +54,8 @@ class Wire {
     float delay;    // delay of this wire
     Gate driven;    // what gate does this wire drive
     int input;    // what input of driven does this wire drive
+    boolean outputValue;
+    boolean inputValue;
 
     Gate driver;    // what gate drives this wire
 
@@ -64,6 +66,8 @@ class Wire {
          */
         Wire w = new Wire();
         Wire returnValue = w;
+        w.outputValue = false;
+        w.inputValue = false;
 
         String srcName = sc.next();
         w.driver = LogicCircuit.findGate( srcName );
@@ -112,6 +116,9 @@ class Wire {
                 "wire '" + srcName + "' '" + dstName + "'"
                 // Bug: the above triggers wasteful computation
         );
+
+        w.handleInput(0, w, false);
+
         return returnValue;
     }
 
@@ -127,8 +134,17 @@ class Wire {
                 ;
     }
 
-    public void changeOutput(float time, boolean value) {
+    public void handleInput(float time, Wire w, boolean value) {
+        if (this.inputValue != value) {
+            this.inputValue = value;
+        }
+        Simulator.scheduleWireEvent(time + delay, w, value);
+    }
 
+    public void changeOutput(float time, boolean value) {
+        if (this.outputValue != value) {
+            this.outputValue = value;
+        }
     }
 }
 
@@ -138,8 +154,8 @@ abstract class Gate {
      */
     String name;    // name of this gate; null signals invalid gate
 
-    LinkedList <Wire> driven = new LinkedList <Wire> ();
-    LinkedList <Wire> driver = new LinkedList <Wire> ();
+    LinkedList<Wire> driven = new LinkedList<Wire>();    //These actually represent the gates output values
+    LinkedList<Wire> driver = new LinkedList<Wire>();    //These actually represent the gates input values
     // Bug: the above two lists are unused, but we think we'll need them.
 
     List<String> inputList;  // the list of allowed input names
@@ -244,6 +260,13 @@ class AndGate extends Gate {
         AndGate g = new AndGate();
         g.scan(sc, inputs);
         if (g.name == null) g = null;
+        for (Wire w : g.driver) {
+            w.inputValue = false;
+        }
+        for (Wire w : g.driven) {
+            w.outputValue = false;
+        }
+        g.handleInput(0, g, false);
         return g;
     }
 
@@ -254,7 +277,13 @@ class AndGate extends Gate {
     }
 
     public void changeOutput(float time, boolean value) {
+        for (Wire w : this.driven) {
+            Simulator.scheduleGateEvent(time + delay, this, value);
+        }
+    }
 
+    public void handleInput(float time, Gate g, boolean value) {
+        Simulator.scheduleGateEvent(time, g, value);
     }
 }
 
@@ -268,17 +297,30 @@ class OrGate extends Gate {
         OrGate g = new OrGate();
         g.scan(sc, inputs);
         if (g.name == null) g = null;
+        for (Wire w : g.driver) {
+            w.inputValue = false;
+        }
+        for (Wire w : g.driven) {
+            w.outputValue = false;
+        }
+        g.handleInput(0, g, false);
         return g;
     }
 
     public String toString() {
-        /** Convert an intersection back to its textual description
+        /** Convert a Gate back to its textual description
          */
         return "gate or " + name + ' ' + delay;
     }
 
     public void changeOutput(float time, boolean value) {
+        for (Wire w : this.driven) {
+            Simulator.scheduleGateEvent(time + delay, this, value);
+        }
+    }
 
+    public void handleInput(float time, Gate g, boolean value) {
+        Simulator.scheduleGateEvent(time, g, value);
     }
 }
 
@@ -291,6 +333,7 @@ class NotGate extends Gate {
     public static Gate scan(Scanner sc) {
         NotGate g = new NotGate();
         g.scan(sc, inputs);
+        g.handleInput(0, g, false);
         if (g.name == null) g = null;
         return g;
     }
@@ -302,7 +345,13 @@ class NotGate extends Gate {
     }
 
     public void changeOutput(float time, boolean value) {
+        for (Wire w : this.driven) {
+            Simulator.scheduleGateEvent(time + delay, this, value);
+        }
+    }
 
+    public void handleInput(float time, Gate g, boolean value) {
+        Simulator.scheduleGateEvent(time, g, value);
     }
 }
 
@@ -312,10 +361,10 @@ class Simulator {
             (Event e1, Event e2) -> Float.compare(e1.time, e2.time)
     );
 
-    static void scheduleWireEvent(float time, Wire wireTarget, boolean value) {
+    static void scheduleWireEvent(float time, Wire targetWire, boolean value) {
         Event e = new Event();
         e.time = time;
-        e.wireTarget = wireTarget;
+        e.targetWire = targetWire;
         e.value = value;
         eventSet.add(e);
     }
@@ -334,14 +383,15 @@ class Simulator {
             Event e = eventSet.remove();
             if (e.targetGate != null) {
                 e.targetGate.changeOutput(e.time, e.value);
-            } else e.wireTarget.changeOutput(e.time, e.value);
+            } else e.targetWire.changeOutput(e.time, e.value);
+            System.out.println("At Time: " + e.time + " Gate: " + e.targetGate.name + "'s Value Changes to: " + e.value);
         }
     }
 
     private static class Event {
         public float time; // the time of this event
         public Gate targetGate; // what Gate object we're targeting
-        public Wire wireTarget; // what Wire object we're targeting
+        public Wire targetWire; // what Wire object we're targeting
         public boolean value; // our targets bool value
 
     }
@@ -435,6 +485,7 @@ public class LogicCircuit {
         for (Wire w: wires) {
             System.out.println( w.toString() );
         }
+
     }
 
     public static void main(String[] args) {
@@ -452,6 +503,7 @@ public class LogicCircuit {
             readCircuit( new Scanner( new File( args[0] )));
             checkCircuit();
             writeCircuit();
+            Simulator.run();
         } catch (FileNotFoundException e) {
             Errors.fatal( "Can't open file '" + args[0] + "'" );
         }

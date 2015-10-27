@@ -1,2 +1,0 @@
-gate not C 0.1
-wire B C in 10.0
