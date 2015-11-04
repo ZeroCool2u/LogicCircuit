@@ -11,6 +11,50 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
 
+class Simulator {
+    private static PriorityQueue<Event> eventSet
+            = new PriorityQueue<Event>(
+            (Event e1, Event e2) -> Float.compare(e1.time, e2.time)
+    );
+
+    static void schedule(float time, Action act) {
+        /** Call schedule to make act happen at time.
+         *  Users typically pass the action as a lambda expression:
+         *  <PRE>
+         *  Simulator.schedule(t,(float time)->method(params,time))
+         *  </PRE>
+         */
+        Event e = new Event();
+        e.time = time;
+        e.act = act;
+        eventSet.add(e);
+    }
+
+    static void run() {
+        /** Call run after scheduling some initial events
+         *  to run the simulation.
+         */
+        while (!eventSet.isEmpty()) {
+            Event e = eventSet.remove();
+            e.act.trigger(e.time);
+        }
+    }
+
+    /**
+     * Framework for discrete event simulation.
+     */
+
+    public interface Action {
+        // actions contain the specific code of each event
+        void trigger(float time);
+    }
+
+    private static class Event {
+        public float time; // the time of this event
+        public Action act; // what to do at that time
+    }
+}
+
 class Errors {
     /** Error reporting framework
      */
@@ -29,21 +73,28 @@ class Errors {
 }
 
 class SyntaxCheck {
-    /** Syntax checking support
-     */
-    static void lineEnd( Scanner sc, String c ) {
+    static void lineEnd(Scanner sc, ByName c) {
         /** Check for end of line on sc,
          *  Use c to provide context in any error message
          */
         String s = sc.nextLine();
         if (!s.isEmpty()) {
             Errors.warn(
-                    c
+                    c.s()
                             + " has non-empty line end '"
                             + s
                             + "'"
             );
         }
+    }
+
+    /**
+     * Syntax checking support
+     */
+
+    public interface ByName {
+        // crutch to allow lambda evaluation of error message string
+        String s();
     }
 }
 
@@ -51,13 +102,11 @@ class Wire {
     /** Wires link gates.
      *  @see Gate
      */
-    float delay;    // delay of this wire
-    Gate driven;    // what gate does this wire drive
-    int input;    // what input of driven does this wire drive
-    boolean outputValue;
-    boolean inputValue;
+    private float delay;    // delay of this wire
+    private Gate driven;    // what gate does this wire drive
+    private int input;    // what input of driven does this wire drive
 
-    Gate driver;    // what gate drives this wire
+    private Gate driver;    // what gate drives this wire
 
     // initializer -- note:  No outside code uses the default initializer!
     public static Wire scan( Scanner sc ) {
@@ -66,13 +115,11 @@ class Wire {
          */
         Wire w = new Wire();
         Wire returnValue = w;
-        w.outputValue = false;
-        w.inputValue = false;
 
         String srcName = sc.next();
         w.driver = LogicCircuit.findGate( srcName );
         String dstName = sc.next();
-        w.driven = LogicCircuit.findGate( dstName );
+        w.driven = LogicCircuit.findGate(dstName);
         String inputName = sc.next();
 
         if (w.driver == null) {
@@ -81,6 +128,9 @@ class Wire {
                             + "' -- the first name is undefined"
             );
             returnValue = null;
+        } else {
+            // inform gate that drives this wire that it does so
+            w.driver.setDriven( w );
         }
 
         if (w.driven == null) {
@@ -112,16 +162,10 @@ class Wire {
         }
 
         SyntaxCheck.lineEnd(
-                sc,
-                "wire '" + srcName + "' '" + dstName + "'"
-                // Bug: the above triggers wasteful computation
+                sc, () -> "wire '" + srcName + "' '" + dstName + "'"
         );
-
-        w.handleInput(0, w, false);
-
         return returnValue;
     }
-
 
     public String toString() {
         /** Convert a wire back to its textual description
@@ -134,17 +178,21 @@ class Wire {
                 ;
     }
 
-    public void handleInput(float time, Wire w, boolean value) {
-        if (this.inputValue != value) {
-            this.inputValue = value;
-        }
-        Simulator.scheduleWireEvent(time + delay, w, value);
+    public void inputChange(float t, boolean v) {
+        /** Simulation event service routine called
+         *  when the input to a wire changes at time t to value v.
+         */
+        Simulator.schedule(
+                t + delay,
+                (float time) -> this.outputChange(time, v)
+        );
     }
 
-    public void changeOutput(float time, boolean value) {
-        if (this.outputValue != value) {
-            this.outputValue = value;
-        }
+    public void outputChange(float t, boolean v) {
+        /** Simulation event service routine called
+         *  when the output of a wire changes at time t to value v.
+         */
+        driven.inputChange(t, input, v);
     }
 }
 
@@ -153,15 +201,13 @@ abstract class Gate {
      *  @see Wire
      */
     String name;    // name of this gate; null signals invalid gate
-
-    LinkedList<Wire> driven = new LinkedList<Wire>();    //These actually represent the gates output values
-    LinkedList<Wire> driver = new LinkedList<Wire>();    //These actually represent the gates input values
-    // Bug: the above two lists are unused, but we think we'll need them.
-
-    List<String> inputList;  // the list of allowed input names
-    boolean[] inputUsed;      // for each input, is it in use?
-
-    float  delay;	// delay of this gate
+    boolean[] inputValue;     // for each input, current value.
+    // driven is (eventually) a list of all wires driven by this gate
+    boolean outputValue;    // most recent computed output value.
+    float delay;    // delay of this gate
+    private LinkedList<Wire> driven = new LinkedList<Wire>();
+    private List<String> inputList;  // the list of allowed input names
+    private boolean[] inputUsed;      // for each input, is it in use?
 
     // initializer -- note:  called only by implementing classes
     public void scan(Scanner sc, List<String> inputs) {
@@ -174,9 +220,12 @@ abstract class Gate {
 
         inputList = inputs;
         inputUsed = new boolean[inputList.size()];
+        inputValue = new boolean[inputList.size()];
         for (int i = 0; i < inputUsed.length; i++) {
             inputUsed[i] = false;
+            inputValue[i] = false;
         }
+        outputValue = false;
 
         if (LogicCircuit.findGate(name) != null) {
             Errors.warn("Gate '" + name + "' redefined");
@@ -194,12 +243,16 @@ abstract class Gate {
         }
 
         SyntaxCheck.lineEnd(
-                sc,
-                "Gate '" + name + "'"
-                // Bug: the above triggers wasteful computation
+                sc, () -> "Gate '" + name + "'"
         );
 
         name = returnName;
+    }
+
+    public void setDriven(Wire w) {
+        /** Inform this gate that it drives wire w
+         */
+        driven.add( w );
     }
 
     public int inputNumber(String in) {
@@ -239,15 +292,31 @@ abstract class Gate {
         }
     }
 
-    public abstract void changeOutput(float time, boolean value);
-
-    /**
-     * Changes a gates output when a scheduled event occurrs.
-     */
-
     public abstract String toString();
+
     /** Convert a gate back to its textual description
      */
+
+    public abstract void inputChange(float t, int i, boolean v);
+
+    /** Simulation event service routine called
+     *  when input i of this gate changes at time t to value v.
+     *  What to do at an input change depends on the gate type;
+     *  it may do nothing, it may schedule an output change.
+     */
+
+    public void outputChange(float t, boolean v) {
+        /** Simulation event service routine called
+         *  when the output of this gate changes at time t to value v.
+         *  At this point, output changes are gate type independent.
+         */
+
+        System.out.println(
+                "Time " + t + " Gate " + name + " changes to " + v + '.'
+        );
+
+        for (Wire w : driven) w.inputChange(t, v);
+    }
 }
 
 class AndGate extends Gate {
@@ -260,13 +329,6 @@ class AndGate extends Gate {
         AndGate g = new AndGate();
         g.scan(sc, inputs);
         if (g.name == null) g = null;
-        for (Wire w : g.driver) {
-            w.inputValue = false;
-        }
-        for (Wire w : g.driven) {
-            w.outputValue = false;
-        }
-        g.handleInput(0, g, false);
         return g;
     }
 
@@ -276,14 +338,23 @@ class AndGate extends Gate {
         return "gate and " + name + ' ' + delay;
     }
 
-    public void changeOutput(float time, boolean value) {
-        for (Wire w : this.driven) {
-            Simulator.scheduleGateEvent(time + delay, this, value);
-        }
-    }
+    public void inputChange(float t, int i, boolean v) {
+        /** Simulation event service routine called
+         *  when input i of this and gate changes at time t to value v.
+         */
 
-    public void handleInput(float time, Gate g, boolean value) {
-        Simulator.scheduleGateEvent(time, g, value);
+        boolean newValue = true;
+        inputValue[i] = v;
+        for (boolean vi : inputValue) if (!vi) newValue = false;
+
+        if (newValue != outputValue) {
+            outputValue = newValue;
+            Simulator.schedule(
+                    t + delay,
+                    (float time)
+                            -> this.outputChange(time, outputValue )
+            );
+        }
     }
 }
 
@@ -297,30 +368,32 @@ class OrGate extends Gate {
         OrGate g = new OrGate();
         g.scan(sc, inputs);
         if (g.name == null) g = null;
-        for (Wire w : g.driver) {
-            w.inputValue = false;
-        }
-        for (Wire w : g.driven) {
-            w.outputValue = false;
-        }
-        g.handleInput(0, g, false);
         return g;
     }
 
     public String toString() {
-        /** Convert a Gate back to its textual description
+        /** Convert an or gate back to its textual description
          */
         return "gate or " + name + ' ' + delay;
     }
 
-    public void changeOutput(float time, boolean value) {
-        for (Wire w : this.driven) {
-            Simulator.scheduleGateEvent(time + delay, this, value);
-        }
-    }
+    public void inputChange(float t, int i, boolean v) {
+        /** Simulation event service routine called
+         *  when input i of this or gate changes at time t to value v.
+         */
 
-    public void handleInput(float time, Gate g, boolean value) {
-        Simulator.scheduleGateEvent(time, g, value);
+        boolean newValue = false;
+        inputValue[i] = v;
+        for (boolean vi : inputValue) if (vi) newValue = true;
+
+        if (newValue != outputValue) {
+            outputValue = newValue;
+            Simulator.schedule(
+                    t + delay,
+                    (float time)
+                            -> this.outputChange(time, outputValue )
+            );
+        }
     }
 }
 
@@ -333,7 +406,10 @@ class NotGate extends Gate {
     public static Gate scan(Scanner sc) {
         NotGate g = new NotGate();
         g.scan(sc, inputs);
-        g.handleInput(0, g, false);
+
+        // tickle this gate so it triggers its initial event
+        g.inputChange(0, 0, false);
+
         if (g.name == null) g = null;
         return g;
     }
@@ -344,56 +420,18 @@ class NotGate extends Gate {
         return "gate not " + name + ' ' + delay;
     }
 
-    public void changeOutput(float time, boolean value) {
-        for (Wire w : this.driven) {
-            Simulator.scheduleGateEvent(time + delay, this, value);
-        }
-    }
+    public void inputChange(float t, int i, boolean v) {
+        /** Simulation event service routine called
+         *  when input i of this not gate changes at time t to value v.
+         */
 
-    public void handleInput(float time, Gate g, boolean value) {
-        Simulator.scheduleGateEvent(time, g, value);
-    }
-}
-
-class Simulator {
-
-    static PriorityQueue<Event> eventSet = new PriorityQueue<Event>(
-            (Event e1, Event e2) -> Float.compare(e1.time, e2.time)
-    );
-
-    static void scheduleWireEvent(float time, Wire targetWire, boolean value) {
-        Event e = new Event();
-        e.time = time;
-        e.targetWire = targetWire;
-        e.value = value;
-        eventSet.add(e);
-    }
-
-    static void scheduleGateEvent(float time, Gate targetGate, boolean value) {
-        Event e = new Event();
-        e.time = time;
-        e.targetGate = targetGate;
-        e.value = value;
-        eventSet.add(e);
-    }
-
-    static void run() {
-        // run the simulation
-        while (!eventSet.isEmpty()) {
-            Event e = eventSet.remove();
-            if (e.targetGate != null) {
-                e.targetGate.changeOutput(e.time, e.value);
-            } else e.targetWire.changeOutput(e.time, e.value);
-            System.out.println("At Time: " + e.time + " Gate: " + e.targetGate.name + "'s Value Changes to: " + e.value);
-        }
-    }
-
-    private static class Event {
-        public float time; // the time of this event
-        public Gate targetGate; // what Gate object we're targeting
-        public Wire targetWire; // what Wire object we're targeting
-        public boolean value; // our targets bool value
-
+        inputValue[i] = v;
+        outputValue = !v;
+        Simulator.schedule(
+                t + delay,
+                (float time) -> this.outputChange(time, outputValue)
+        );
+        outputValue = !v;
     }
 }
 
@@ -427,23 +465,18 @@ public class LogicCircuit {
         /** Read a logic circuit, scanning its description from sc.
          */
 
-        // the different input name sets for different gates
-        List <String> in1in2 = Arrays.asList( "in1", "in2" );
-        List <String> in = Arrays.asList( "in" );
-        // Bug:  Above is the wrong way to do this
-
         while (sc.hasNext()) {
             // until the input file is finished
             String command = sc.next();
             if ("gate".equals( command )) {
                 String kind = sc.next();
                 Gate g = null;
-                if ("and".equals( kind )) {
+                if ("and".equals(kind)) {
                     g = AndGate.scan(sc);
-                } else if ("or".equals( kind )) {
+                } else if ("or".equals(kind)) {
                     g = OrGate.scan(sc);
-                } else if ("not".equals( kind )) {
-                    g = NotGate.scan(sc);
+                } else if ("not".equals(kind)) {
+                    g = NotGate.scan( sc );
                 } else {
                     Errors.warn(
                             "gate '"
@@ -485,7 +518,6 @@ public class LogicCircuit {
         for (Wire w: wires) {
             System.out.println( w.toString() );
         }
-
     }
 
     public static void main(String[] args) {
@@ -500,7 +532,7 @@ public class LogicCircuit {
             Errors.fatal( "Extra command-line arguments" );
         }
         try {
-            readCircuit( new Scanner( new File( args[0] )));
+            readCircuit(new Scanner(new File(args[0])));
             checkCircuit();
             writeCircuit();
             Simulator.run();
