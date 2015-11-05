@@ -4,7 +4,7 @@
  * and then write it out in order to demonstrate that it was read correctly.
  * @author Theo Linnemann 00773130
  * Based on code provided by Douglas Jones
- * @version MP3
+ * @version MP4
  */
 
 import java.io.File;
@@ -19,9 +19,9 @@ public class LogicCircuit {
      *  @see Wire
      */
     static LinkedList <Gate> gates
-            = new LinkedList <Gate> ();
+            = new LinkedList<>();
     static LinkedList <Wire> wires
-            = new LinkedList <Wire> ();
+            = new LinkedList<>();
 
     static Gate findGate( String s ) {
         /** Given s the name of a particular gate
@@ -29,7 +29,7 @@ public class LogicCircuit {
          *  returns that gate if it exists.
          *  @see Intersection
          */
-        // Bug:  Reengineering this to use a hash should be possible
+        // Bug:  Rewriting this to use a hash should be possible
         for (Gate i: gates) {
             if (i.name.equals( s )) {
                 return i;

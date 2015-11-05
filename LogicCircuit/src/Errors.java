@@ -1,4 +1,4 @@
-// Errors.java
+//Errors.java
 /**
  * Tools for reporting errors, both fatal and non-fatal
  *
