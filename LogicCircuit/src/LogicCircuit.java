@@ -4,7 +4,7 @@
  * and then write it out in order to demonstrate that it was read correctly.
  * @author Theo Linnemann 00773130
  * Based on code provided by Douglas Jones
- * @version MP3
+ * @version MP4
  */
 
 import java.io.File;

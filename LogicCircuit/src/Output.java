@@ -1,9 +1,9 @@
 //Output.java
-
 /**
- * Output extends Gate to provide simple visual output of the circuits behavior.
- *
+ * Output extends Gate to provide simple visual output of the circuits behavior. *
  * @author Theo Linnemann; based on code provided by Professor Doug Jones
+ * @see Simulator
+ * @see Gate
  */
 public class Output extends Gate {
 
