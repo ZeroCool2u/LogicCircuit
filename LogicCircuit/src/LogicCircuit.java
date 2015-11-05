@@ -1,4 +1,4 @@
-// LogicCircuit.java
+//LogicCircuit.java
 /**
  * Read a logic circuit description from the file given on the command line
  * and then write it out in order to demonstrate that it was read correctly.
@@ -66,6 +66,8 @@ public class LogicCircuit {
             } else if ("wire".equals( command )) {
                 Wire w = Wire.scan( sc );
                 if (w != null) wires.add( w );
+            } else if ("//".equals(command)) {
+                sc.nextLine();
             } else {
                 Errors.warn(
                         "'"

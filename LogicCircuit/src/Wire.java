@@ -1,4 +1,4 @@
-// Wire.java
+//Wire.java
 /**
  * Wires are used to link gates in a logic circuit simulation
  *

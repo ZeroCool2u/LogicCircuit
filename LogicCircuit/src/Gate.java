@@ -1,4 +1,4 @@
-// Gate.java
+//Gate.java
 /**
  * Gates are the active elemets linked by wires in a logic circuit simulation
  *
@@ -25,6 +25,8 @@ abstract class Gate {
     // driven is (eventually) a list of all wires driven by this gate
     boolean outputValue;    // most recent computed output value.
     float delay;    // delay of this gate
+
+    //Containers
     private LinkedList<Wire> driven = new LinkedList<Wire>();
     private List<String> inputList;  // the list of allowed input names
     private boolean[] inputUsed;      // for each input, is it in use?

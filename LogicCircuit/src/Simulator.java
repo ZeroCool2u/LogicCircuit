@@ -1,4 +1,4 @@
-// Simulator.java
+//Simulator.java
 /**
  * A general purpose simulation framework
  *

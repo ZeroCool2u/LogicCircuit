@@ -1,4 +1,4 @@
-// SyntaxCheck.java
+//SyntaxCheck.java
 /**
  * Support for common syntax checking problems like skipping to the next line.
  *
@@ -18,7 +18,7 @@ class SyntaxCheck {
          *  Use c to provide context in any error message
          */
         String s = sc.nextLine();
-        if (!s.isEmpty()) {
+        if (!((s.length() > 1) && (s.charAt(0) == '/') && (s.charAt(1) == '/')) && !s.isEmpty()) {
             Errors.warn(
                     c.s()
                             + " has non-empty line end '"

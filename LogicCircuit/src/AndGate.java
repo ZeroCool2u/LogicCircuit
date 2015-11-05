@@ -1,4 +1,4 @@
-// AndGate.java
+//AndGate.java
 /**
  * And gates are a subclass of gate in the logic circuit simulation.
  *

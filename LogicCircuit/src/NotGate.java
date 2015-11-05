@@ -1,4 +1,4 @@
-// NotGate.java
+//NotGate.java
 /**
  * Not gates are a subclass of gate in the logic ciruit simulation.
  *

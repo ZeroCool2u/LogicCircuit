@@ -1,4 +1,4 @@
-// OrGate.java
+//OrGate.java
 /**
  * Or gates area subclass of gate in the logic circuit simulation.
  *
