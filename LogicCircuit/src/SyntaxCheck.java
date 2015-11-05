@@ -29,7 +29,7 @@ class SyntaxCheck {
     }
 
     public interface ByName {
-        // crutch to allow lambda evaluation of error message string
+        // Typical function call: SyntaxCheck.lineEnd( scanner, ()-> 'a' + 'b' + 'c') Some sort of string concat.
         String s();
     }
 }
