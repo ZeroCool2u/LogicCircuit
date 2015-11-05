@@ -29,7 +29,7 @@ public class LogicCircuit {
          *  returns that gate if it exists.
          *  @see Intersection
          */
-        // Bug:  Rewriting this to use a hash should be possible
+        // TODO:  Rewriting this to use a hash should be possible
         for (Gate i: gates) {
             if (i.name.equals( s )) {
                 return i;
