@@ -1,0 +1,6 @@
+gate not a 0.5
+gate output b 0
+gate output c 0
+wire a a in 0.5
+wire a b in 0.5
+wire a c in 1.5

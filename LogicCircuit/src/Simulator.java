@@ -16,7 +16,7 @@ class Simulator {
     );
 
     static boolean moreEvents() {
-        /** Report if there pending and not yet triggered events.
+        /** Report if there's pending and not yet triggered events.
          */
         return !eventSet.isEmpty();
     }
@@ -45,8 +45,8 @@ class Simulator {
     }
 
     public interface Action {
-        // actions contain the specific code of each event
-        // users generally use lambda abstraction
+        // Actions contain the specific code of each event.
+        // Users of class Action, generally use lambda abstraction
         // so they don't usually see this class.
         void trigger(float time);
     }

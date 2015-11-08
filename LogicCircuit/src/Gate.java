@@ -21,11 +21,10 @@ abstract class Gate {
      *  @see Wire
      */
     String name;    // name of this gate; null signals invalid gate
-    boolean[] inputValue;     // for each input, current value.
     // driven is (eventually) a list of all wires driven by this gate
     boolean outputValue;    // most recent computed output value.
     float delay;    // delay of this gate
-
+    boolean[] inputValue;     // for each input, current value.
     //Containers
     private LinkedList<Wire> driven = new LinkedList<Wire>();
     private List<String> inputList;  // the list of allowed input names
@@ -104,7 +103,7 @@ abstract class Gate {
         /** Check to see that all inputs of this gate are connected.
          */
         for (int i = 0; i < inputUsed.length; i++) {
-            if (inputUsed[i] == false) {
+            if (!inputUsed[i]) {
                 Errors.warn(
                         "Gate " + name + ' '
                                 + inputList.get(i)

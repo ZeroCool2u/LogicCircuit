@@ -54,6 +54,8 @@ public class LogicCircuit {
                     g = OrGate.scan(sc);
                 } else if ("not".equals(kind)) {
                     g = NotGate.scan( sc );
+                } else if ("output".equals(kind)) {
+                    g = OutputGate.scan(sc);
                 } else {
                     Errors.warn(
                             "gate '"
