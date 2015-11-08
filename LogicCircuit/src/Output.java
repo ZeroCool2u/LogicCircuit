@@ -1,6 +1,6 @@
 //OutputGate.java
 /**
- * OutputGate extends Gate to provide simple visual output of the circuits behavior. *
+ * Output extends Gate to provide simple visual output of the circuits behavior. *
  *
  * @author Theo Linnemann; based on code provided by Professor Doug Jones
  * @see Simulator
@@ -11,18 +11,18 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Scanner;
 
-public class OutputGate extends Gate {
+public class Output extends Gate {
     private static List<String> inputs = Arrays.asList("in");
+    private int changes;
     private String[] trueArray = {" |   ", "  _| ", " |-  ", " ,=' ", " |=  "};
     private String[] falseArray = {" |=  ", " ,=' ", " |-  ", "  _| ", " |   "};
 
-
-    private OutputGate() {
+    private Output() {
         //Prevents outsiders from using the initializer.
     }
 
     public static Gate scan(Scanner sc) {
-        OutputGate g = new OutputGate();
+        Output g = new Output();
         g.scan(sc, inputs);
 
         // tickle this gate so it triggers its initial event
@@ -34,6 +34,7 @@ public class OutputGate extends Gate {
     }
 
     public void printNextOutChar(int changes, boolean current) {
+
         if (changes > 4) changes = 4 - (changes & 1);
         if (current) {
             System.out.append(trueArray[changes]);

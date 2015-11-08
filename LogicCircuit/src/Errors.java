@@ -10,7 +10,7 @@ class Errors {
     /** Error reporting framework
      */
 
-    private static int errorCount = 0; //Number of erros encountered when reading input file.
+    private static int errorCount = 0; //Number of errors encountered when reading input file.
 
 
 
@@ -26,7 +26,10 @@ class Errors {
          */
         System.err.println(message);
         errorCount = errorCount + 1;
-        if (errorCount > 20) System.exit(1);
+        if (errorCount > 20) {
+            System.out.println("More than 20 nonfatal errors were encountered. Simulation terminating.");
+            System.exit(1);
+        }
     }
 
     static int getErrorCount() {

@@ -22,7 +22,8 @@ public class LogicCircuit {
             = new LinkedList<>();
     static LinkedList <Wire> wires
             = new LinkedList<>();
-
+    static LinkedList<Output> outputs
+            = new LinkedList<>();
     static Gate findGate( String s ) {
         /** Given s the name of a particular gate
          *  returns null if that gate does not exist,
@@ -55,7 +56,7 @@ public class LogicCircuit {
                 } else if ("not".equals(kind)) {
                     g = NotGate.scan( sc );
                 } else if ("output".equals(kind)) {
-                    g = OutputGate.scan(sc);
+                    g = Output.scan(sc);
                 } else {
                     Errors.warn(
                             "gate '"
@@ -116,7 +117,8 @@ public class LogicCircuit {
             readCircuit(new Scanner(new File(args[0])));
             checkCircuit();
             writeCircuit();
-            Simulator.run();
+            if (Errors.getErrorCount() == 0) Simulator.run();
+            else System.out.println("Circuit errors detected. Simulation halted. Fix these errors and rerun.");
         } catch (FileNotFoundException e) {
             Errors.fatal( "Can't open file '" + args[0] + "'" );
         }
