@@ -24,6 +24,7 @@ public class LogicCircuit {
             = new LinkedList<>();
     static LinkedList<Output> outputs
             = new LinkedList<>();
+
     static Gate findGate( String s ) {
         /** Given s the name of a particular gate
          *  returns null if that gate does not exist,
@@ -66,7 +67,7 @@ public class LogicCircuit {
                     sc.nextLine();
                 }
                 if (g != null) gates.add( g );
-            } else if ("wire".equals( command )) {
+            } else if ("wire".equals(command)) {
                 Wire w = Wire.scan( sc );
                 if (w != null) wires.add( w );
             } else if ("//".equals(command)) {

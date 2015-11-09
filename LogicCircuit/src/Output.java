@@ -28,12 +28,21 @@ public class Output extends Gate {
         // tickle this gate so it triggers its initial event
         g.inputChange(0, 0, false);
 
-        if (g.name == null) g = null;
-        return g;
-
+        if (g.name == null) {
+            g = null;
+            return g;
+        } else {
+            LogicCircuit.outputs.add(g);
+            return g;
+        }
     }
 
     public void printNextOutChar(int changes, boolean current) {
+        if (!LogicCircuit.outputs.isEmpty()) {
+            for (Output o : LogicCircuit.outputs) {
+                System.out.print("  " + o.name + "  ");
+            }
+        }
 
         if (changes > 4) changes = 4 - (changes & 1);
         if (current) {
