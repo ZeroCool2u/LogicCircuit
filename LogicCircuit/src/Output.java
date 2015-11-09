@@ -13,9 +13,9 @@ import java.util.Scanner;
 
 public class Output extends Gate {
     private static List<String> inputs = Arrays.asList("in");
+    private static String[] trueArray = {" |   ", "  _| ", " |-  ", " ,=' ", " |=  "};
+    private static String[] falseArray = {" |=  ", " ,=' ", " |-  ", "  _| ", " |   "};
     private int changes;
-    private String[] trueArray = {" |   ", "  _| ", " |-  ", " ,=' ", " |=  "};
-    private String[] falseArray = {" |=  ", " ,=' ", " |-  ", "  _| ", " |   "};
 
     private Output() {
         //Prevents outsiders from using the initializer.
@@ -30,17 +30,19 @@ public class Output extends Gate {
 
         if (g.name == null) {
             g = null;
-            return g;
+            return g;       //If this code is executed, g always returns as null. This is by design.
         } else {
             LogicCircuit.outputs.add(g);
             return g;
         }
     }
 
-    public void printNextOutChar(int changes, boolean current) {
+    public static void printNextOutChar(int changes, boolean current) {
         if (!LogicCircuit.outputs.isEmpty()) {
             for (Output o : LogicCircuit.outputs) {
-                System.out.print("  " + o.name + "  ");
+                String header = o.name;
+                System.out.append("  " + o.name + "  ");    //TODO: Line above and below def broken!
+                System.out.println(header);
             }
         }
 
