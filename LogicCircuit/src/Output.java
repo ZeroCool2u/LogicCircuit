@@ -36,7 +36,7 @@ public class Output extends Gate {
             g = null;
             return g;       //If this line is executed, g always returns as null. This is by design.
         } else {
-            header += System.out.append(g.name);
+            header += "  " + System.out.append(g.name) + "  ";
             return g;
         }
     }
