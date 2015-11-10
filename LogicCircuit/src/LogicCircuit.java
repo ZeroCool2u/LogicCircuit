@@ -22,8 +22,6 @@ public class LogicCircuit {
             = new LinkedList<>();
     static LinkedList <Wire> wires
             = new LinkedList<>();
-    static LinkedList<Output> outputs   //TODO: Can we make this static in the output class instead?
-            = new LinkedList<>();
 
     static Gate findGate( String s ) {
         /** Given s the name of a particular gate

@@ -8,3 +8,5 @@ wire B C in 10.0
 gate and D 0.1
 wire B D in1 0.1
 wire C D in2 0.1
+gate output E 0
+wire D E in 0.1
