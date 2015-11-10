@@ -42,7 +42,7 @@ public class Output extends Gate {
     }
 
     public void printOutput(int changes, boolean current) {
-        if (outputs.isEmpty()) {
+        if (!outputs.isEmpty()) {
             for (Output o : outputs) {
                 System.out.append(o.name);
             }
