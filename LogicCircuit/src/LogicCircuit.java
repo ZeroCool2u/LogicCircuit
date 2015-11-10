@@ -115,7 +115,7 @@ public class LogicCircuit {
         try {
             readCircuit(new Scanner(new File(args[0])));
             checkCircuit();
-            writeCircuit();
+            //writeCircuit();
             if (Errors.getErrorCount() == 0) Simulator.run();
             else System.out.println("Circuit errors detected. Simulation halted. Fix these errors and rerun.");
         } catch (FileNotFoundException e) {

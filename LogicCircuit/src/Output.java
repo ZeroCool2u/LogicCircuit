@@ -13,11 +13,12 @@ import java.util.List;
 import java.util.Scanner;
 
 public class Output extends Gate {
+    public static String header = "";
     static LinkedList<Output> outputs = new LinkedList<>();
     private static List<String> inputs = Arrays.asList("in");
     private static String[] trueArray = {" |   ", "  _| ", " |-  ", " ,=' ", " |=  "};
     private static String[] falseArray = {" |=  ", " ,=' ", " |-  ", "  _| ", " |   "};
-    private int changes;
+    private int changes = 0;
 
     private Output() {
         //Prevents outsiders from using the initializer.
@@ -35,16 +36,17 @@ public class Output extends Gate {
             g = null;
             return g;       //If this line is executed, g always returns as null. This is by design.
         } else {
+            header += System.out.append(g.name);
             return g;
         }
     }
 
     public void printOutput(int changes, boolean current) {
-        if (!outputs.isEmpty()) {
+        if (outputs.isEmpty()) {
             for (Output o : outputs) {
                 System.out.append(o.name);
             }
-            System.out.println();
+            System.out.println(header);
         }
 
         while (Simulator.moreEvents()) {
@@ -63,6 +65,7 @@ public class Output extends Gate {
     public void inputChange(float t, int i, boolean v) {
         inputValue[i] = v;
         outputValue = v;
+        this.changes++;
         Simulator.schedule(
                 t + delay,
                 (float time) -> this.outputChange(time, outputValue)
@@ -76,9 +79,6 @@ public class Output extends Gate {
          *  when the output of this gate changes at time t to value v.
          *  At this point, output changes are gate type independent.
          */
-
-        changes++;
-
         Simulator.schedule(t + delay, (float time) -> this.printOutput(changes, v));
     }
 
