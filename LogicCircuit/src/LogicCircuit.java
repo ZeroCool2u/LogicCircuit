@@ -42,10 +42,11 @@ public class LogicCircuit {
         /** Read a logic circuit, scanning its description from sc.
          */
 
-        while (sc.hasNext()) {
+        while (sc.hasNext() && !sc.hasNextFloat()) {
             // until the input file is finished
+            // or the next line begins with a float
             String command = sc.next();
-            if ("gate".equals( command )) {
+            if ("gate".equals(command)) {
                 String kind = sc.next();
                 Gate g = null;
                 if ("and".equals(kind)) {
@@ -53,9 +54,11 @@ public class LogicCircuit {
                 } else if ("or".equals(kind)) {
                     g = OrGate.scan(sc);
                 } else if ("not".equals(kind)) {
-                    g = NotGate.scan( sc );
+                    g = NotGate.scan(sc);
                 } else if ("output".equals(kind)) {
                     g = Output.scan(sc);
+                } else if ("input".equals(kind)) {
+                    g = Input.scan(sc);
                 } else {
                     Errors.warn(
                             "gate '"
@@ -64,12 +67,10 @@ public class LogicCircuit {
                     );
                     sc.nextLine();
                 }
-                if (g != null) gates.add( g );
+                if (g != null) gates.add(g);
             } else if ("wire".equals(command)) {
-                Wire w = Wire.scan( sc );
-                if (w != null) wires.add( w );
-            } else if ("//".equals(command)) {
-                sc.nextLine();
+                Wire w = Wire.scan(sc);
+                if (w != null) wires.add(w);
             } else {
                 Errors.warn(
                         "'"
@@ -123,3 +124,5 @@ public class LogicCircuit {
         }
     }
 }
+
+
