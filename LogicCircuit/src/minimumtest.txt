@@ -1,0 +1,5 @@
+gate input a 0
+gate output b 0
+wire a b in 0.5
+2.0 a true
+5.0 stop

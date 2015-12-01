@@ -18,10 +18,13 @@ class Output extends Gate {
             = {" |   ", "  _| ", " |-  ", " ,=' ", " |=  "};
     private static final String[] trueArray
             = {"   | ", " |_  ", "  -| ", " '=, ", "  =| "};
+
     // the following string defines the only name allowed for gate inputs
     private static List<String> inputs = Arrays.asList("in");
+
     // all output gates in the circuit are listed here
     private static List<Output> outputList = new LinkedList<Output>();
+
     // outputs count changes to their inputs since the last output event
     private int changeCount = 0; // this and output value determine display
 
